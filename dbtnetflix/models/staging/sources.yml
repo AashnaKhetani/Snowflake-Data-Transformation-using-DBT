@@ -1,0 +1,91 @@
+version: 2
+
+sources:
+  - name: movielens_raw
+    description: >
+      Raw MovieLens tables in Snowflake (bronze layer), loaded from CSV files in
+      S3 by COPY INTO, outside dbt. Values are typed at load time, and two audit
+      columns (loaded_at, source_file) are added to the ratings table. 
+      Tables are append-only. dbt only reads them: renaming and cleaning 
+      happen in the staging views, which are separate objects.
+    database: movielens
+    schema: raw
+
+    tables:
+      - name: r_movies
+        identifier: raw_movies
+        description: One row per movie.
+        columns:
+          - name: movieId
+            description: Movie key.
+          - name: title
+            description: >
+              Title with the release year in brackets, e.g. "Toy Story (1995)".
+              Some titles carry an alternate title in a second set of brackets.
+          - name: genres
+            description: Pipe-separated genre list, or "(no genres listed)".
+
+      - name: raw_ratings
+        description: >
+          One row per rating as loaded. Append-only, so a corrected rating that
+          arrives in a later file appears as a second row for the same user and
+          movie. De-duplication happens downstream in fct_ratings.
+        columns:
+          - name: userId
+            description: User key.
+          - name: movieId
+            description: Movie key.
+          - name: rating
+            description: Rating given by the user, on a 0.5 to 5 scale.
+          - name: rating_ts
+            description: When the user made the rating (event time).
+          - name: loaded_at
+            description: >
+              When Snowflake read the file (METADATA$START_SCAN_TIME). Arrival
+              time, used as the high-water mark by the incremental fct_ratings model.
+          - name: source_file
+            description: Path of the S3 file the row came from, for traceability.
+
+      - name: raw_tags
+        description: >
+          One row per tag a user applied to a movie. Free text typed by users,
+          so it is sparse and messy.
+        columns:
+          - name: userId
+            description: User who applied the tag.
+          - name: movieId
+            description: Movie the tag was applied to.
+          - name: tag
+            description: Free-text tag.
+          - name: tag_ts
+            description: When the tag was applied.
+
+      - name: raw_genome_scores
+        description: >
+          Tag genome relevance scores. A dense grid: every movie in the genome
+          has a score for every genome tag.
+        columns:
+          - name: movieId
+            description: Movie key.
+          - name: tagId
+            description: Genome tag key (joins to raw_genome_tags).
+          - name: relevance
+            description: Computed relevance of the tag to the movie, between 0 and 1.
+
+      - name: raw_genome_tags
+        description: Lookup of the genome tags, one row per tag.
+        columns:
+          - name: tagId
+            description: Genome tag key.
+          - name: tag
+            description: Tag text.
+
+      - name: raw_links
+        description: One row per movie, with identifiers in other movie databases.
+        columns:
+          - name: movieId
+            description: Movie key.
+          - name: imdbId
+            description: IMDb identifier, stored as a number without leading zeros.
+          - name: tmdbId
+            description: TMDb identifier. Can be empty for some movies.
