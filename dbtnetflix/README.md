@@ -1,4 +1,4 @@
-# MovieLens Analytics Warehouse: dbt + Snowflake
+# MovieLens Analytics Warehouse: dbt + Snowflake + S3
 
 An ELT project that loads the MovieLens 20M dataset from S3 into Snowflake and models it with dbt Core into a tested, documented star schema: staging views, dimensions, facts, a many-to-many bridge table, an incremental ratings fact, and a snapshot for slowly changing movie attributes.
 
