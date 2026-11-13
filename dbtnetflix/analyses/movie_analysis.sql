@@ -15,8 +15,7 @@ SELECT
   rs.total_ratings
 FROM ratings_summary rs
 JOIN {{ ref('dim_movies') }} m ON m.movie_id = rs.movie_id
-ORDER BY rs.average_rating DESC
-LIMIT 200;
+ORDER BY rs.average_rating DESC;
 
  
 -- Analysis: Rating Distribution Across Genres
